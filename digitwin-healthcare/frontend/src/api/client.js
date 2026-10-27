@@ -1,4 +1,9 @@
-const BASE = import.meta.env?.VITE_API_URL || "http://localhost:8000";
+const BASE =
+  import.meta.env?.VITE_API_URL !== undefined && import.meta.env?.VITE_API_URL !== ""
+    ? import.meta.env.VITE_API_URL
+    : (typeof window !== "undefined" && window.location?.origin && !window.location.origin.includes(":5173"))
+      ? ""
+      : "http://localhost:8000";
 
 async function apiFetch(path, options) {
   try {
