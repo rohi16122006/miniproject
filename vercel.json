@@ -1,3 +1,33 @@
 {
-  "outputDirectory": "digitwin-healthcare/frontend/dist"
+  "outputDirectory": "digitwin-healthcare/frontend/dist",
+  "rewrites": [
+    {
+      "source": "/simulate",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/forecast",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/drugs",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/history/:match*",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/ecg/:match*",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/api/:match*",
+      "destination": "/api/index.py"
+    }
+  ]
 }

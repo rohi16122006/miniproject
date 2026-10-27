@@ -27,7 +27,8 @@ CREATE INDEX IF NOT EXISTS idx_ecg_analyses_simulation_id
 
 @contextmanager
 def connect():
-    conn = sqlite3.connect(os.environ.get("DIGITWIN_DB", "digitwin.db"))
+    default_db = "/tmp/digitwin.db" if os.environ.get("VERCEL") else "digitwin.db"
+    conn = sqlite3.connect(os.environ.get("DIGITWIN_DB", default_db))
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
     try:
