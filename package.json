@@ -1,0 +1,10 @@
+{
+  "name": "mini-pro",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix digitwin-healthcare/frontend run dev",
+    "build": "npm --prefix digitwin-healthcare/frontend run build",
+    "test": "npm --prefix digitwin-healthcare/frontend test"
+  }
+}
