@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# Python cache & virtual environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/.pytest_cache/
+venv/
+.venv/
+env/
+
+# Database & logs
+*.db
+*.sqlite3
+*.log
+
+# Git sub-backups
+.git_backup/
+**/.git_backup/
+
+# System & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

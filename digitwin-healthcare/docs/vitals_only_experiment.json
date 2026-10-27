@@ -1,0 +1,37 @@
+{
+  "description": "18 vital-sign-only features; drug-rate features excluded",
+  "window_counts": {
+    "train": 2333,
+    "val": 716,
+    "test": 487
+  },
+  "persistence": {
+    "sbp": {
+      "mae": 10.935797399041753,
+      "rmse": 16.59146076890493
+    },
+    "dbp": {
+      "mae": 5.166666666666666,
+      "rmse": 8.720087856717994
+    },
+    "hr": {
+      "mae": 4.895277207392197,
+      "rmse": 9.642053680551916
+    }
+  },
+  "xgboost_vitals_only": {
+    "sbp": {
+      "mae": 10.050571631061096,
+      "rmse": 14.630561414363784
+    },
+    "dbp": {
+      "mae": 9.440344284085963,
+      "rmse": 11.793919891438255
+    },
+    "hr": {
+      "mae": 5.996686790513307,
+      "rmse": 9.12955690665206
+    }
+  },
+  "warning": "Exploratory evaluation only; not clinically validated."
+}

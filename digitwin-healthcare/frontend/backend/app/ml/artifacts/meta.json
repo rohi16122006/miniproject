@@ -1,0 +1,71 @@
+{
+  "version": "xgb-0.1",
+  "feature_names": [
+    "sbp_last",
+    "sbp_mean",
+    "sbp_std",
+    "sbp_min",
+    "sbp_max",
+    "sbp_slope",
+    "dbp_last",
+    "dbp_mean",
+    "dbp_std",
+    "dbp_min",
+    "dbp_max",
+    "dbp_slope",
+    "hr_last",
+    "hr_mean",
+    "hr_std",
+    "hr_min",
+    "hr_max",
+    "hr_slope",
+    "drug_last",
+    "drug_mean",
+    "drug_max"
+  ],
+  "L": 30,
+  "H": 30,
+  "step_s": 10,
+  "data_source": "C:\\Users\\Rohith B\\OneDrive\\Attachments\\Documents\\digitwin\\data\\raw\\vitaldb",
+  "results": {
+    "task": "forecast SBP/DBP/HR 300 s ahead from the previous 300 s",
+    "n_windows": {
+      "train": 1093,
+      "val": 134,
+      "test": 128
+    },
+    "n_cases": {
+      "train": 5,
+      "val": 1,
+      "test": 1
+    },
+    "test_persistence": {
+      "sbp": {
+        "mae": 16.971354166666668,
+        "rmse": 25.223083166185393
+      },
+      "dbp": {
+        "mae": 8.553385416666668,
+        "rmse": 12.501307152459086
+      },
+      "hr": {
+        "mae": 12.1640625,
+        "rmse": 17.325694430527165
+      }
+    },
+    "test_xgboost": {
+      "sbp": {
+        "mae": 14.57777004866373,
+        "rmse": 21.106860123494236
+      },
+      "dbp": {
+        "mae": 7.442891864549546,
+        "rmse": 10.626348956838182
+      },
+      "hr": {
+        "mae": 12.663764387369156,
+        "rmse": 16.094950140832456
+      }
+    }
+  }
+}

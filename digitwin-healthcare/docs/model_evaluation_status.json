@@ -1,0 +1,59 @@
+{
+  "status": "reproduced_from_current_checkout",
+  "current_evaluation": {
+    "prediction_horizon_s": 300,
+    "test_windows": 487,
+    "independent_test_cases": 3,
+    "unit": "SBP/DBP: mmHg; HR: bpm",
+    "persistence": {
+      "sbp": {"mae": 10.935797399041753, "rmse": 16.59146076890493},
+      "dbp": {"mae": 5.166666666666666, "rmse": 8.720087856717994},
+      "hr": {"mae": 4.895277207392197, "rmse": 9.642053680551916}
+    },
+    "xgboost": {
+      "sbp": {"mae": 9.854265884156218, "rmse": 14.34627775720483},
+      "dbp": {"mae": 8.964451980180517, "rmse": 11.208503906216745},
+      "hr": {"mae": 5.860332872833315, "rmse": 8.99985587154199}
+    },
+    "verification": "Recomputed from the current model artifacts and test.npz; values match the saved meta.json."
+  },
+  "reason": "Case-level signals and processed splits are present. Metrics were recomputed without retraining.",
+  "available_data": [
+    "data/raw/vitaldb/clinical_data.csv: 6388 metadata rows",
+    "data/raw/vitaldb/track_names.csv: 196 track metadata rows",
+    "data/raw/vitaldb/case_*.npz: 16 cases, 25366 samples",
+    "data/processed/train.npz: 2333 windows",
+    "data/processed/val.npz: 716 windows",
+    "data/processed/test.npz: 487 windows",
+    "data/processed/features.json",
+    "data/processed/split.json",
+    "data/processed/SOURCE.txt",
+    "backend/app/ml/artifacts/xgb_sbp.json",
+    "backend/app/ml/artifacts/xgb_dbp.json",
+    "backend/app/ml/artifacts/xgb_hr.json",
+    "backend/app/ml/artifacts/meta.json",
+    "backend/app/ml/artifacts/metrics.json"
+  ],
+  "missing_inputs": [],
+  "split_metadata": {
+    "train_case_count": 10,
+    "validation_case_count": 3,
+    "test_case_count": 3,
+    "train_windows": 2333,
+    "validation_windows": 716,
+    "test_windows": 487,
+    "provenance_note": "Verified from current split.json and processed NPZ arrays."
+  },
+  "drug_rate_missingness": {
+    "samples": 25366,
+    "missing_samples": 12748,
+    "missing_percentage": 50.26,
+    "preprocessing": "Missing rates were converted to zero in the current training pipeline and artifacts.",
+    "interpretation": "Missing data do not establish that no infusion occurred."
+  },
+  "reproducibility_conflicts": [
+    "The model was evaluated on only three independent held-out cases, so the results are exploratory and not clinical validation.",
+    "Drug-rate preprocessing maps missing values to zero; this unverified assumption affects the existing artifacts."
+  ],
+  "next_reproduction_command": "Recompute metrics without retraining by evaluating data/processed/test.npz with backend/app/ml/artifacts."
+}

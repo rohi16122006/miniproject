@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm --prefix digitwin-healthcare/frontend run dev",
-    "build": "npm --prefix digitwin-healthcare/frontend run build",
+    "build": "npm --prefix digitwin-healthcare/frontend install && npm --prefix digitwin-healthcare/frontend run build",
     "test": "npm --prefix digitwin-healthcare/frontend test"
   }
 }

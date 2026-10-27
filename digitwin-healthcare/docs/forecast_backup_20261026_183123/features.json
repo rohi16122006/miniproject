@@ -1,0 +1,23 @@
+[
+  "sbp_last",
+  "sbp_mean",
+  "sbp_std",
+  "sbp_min",
+  "sbp_max",
+  "sbp_slope",
+  "dbp_last",
+  "dbp_mean",
+  "dbp_std",
+  "dbp_min",
+  "dbp_max",
+  "dbp_slope",
+  "hr_last",
+  "hr_mean",
+  "hr_std",
+  "hr_min",
+  "hr_max",
+  "hr_slope",
+  "drug_last",
+  "drug_mean",
+  "drug_max"
+]
