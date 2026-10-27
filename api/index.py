@@ -12,3 +12,4 @@ if os.environ.get("VERCEL"):
     os.environ.setdefault("DIGITWIN_DB", "/tmp/digitwin.db")
 
 from app.main import app
+

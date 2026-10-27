@@ -86,8 +86,8 @@ def evaluate_drug_safety(
 
         # Clinical Condition 1: Hypotension / Shock
         if base_map < 65 or base_sbp < 90:
-            if drug_key == "phenylephrine":
-                score += 25.0
+            if drug_key in ("phenylephrine", "norepinephrine"):
+                score += 25.0 if drug_key == "phenylephrine" else 24.0
                 reasons.append("Indicated vasopressor therapy: Restores vital organ perfusion (target MAP >= 65 mmHg).")
             else:
                 score -= 60.0
@@ -96,34 +96,63 @@ def evaluate_drug_safety(
 
         # Clinical Condition 2: Hypertension (SBP >= 140 or DBP >= 90)
         elif base_sbp >= 140 or base_dbp >= 90:
-            if drug_key == "phenylephrine":
+            if drug_key in ("phenylephrine", "norepinephrine"):
                 score -= 70.0
                 contraindicated = True
-                reasons.append("CONTRAINDICATED: Alpha-1 agonist further elevates systemic afterload and hypertensive risk.")
+                reasons.append("CONTRAINDICATED: Vasopressor agonist further elevates systemic afterload and hypertensive risk.")
             else:
                 # Patient has resting tachycardia (HR >= 82)
                 if base_hr >= 82:
                     if drug_key == "metoprolol":
                         score += 20.0
                         reasons.append("Highly recommended: Beta-blocker simultaneously addresses elevated heart rate and hypertension.")
+                    elif drug_key == "carvedilol":
+                        score += 19.0
+                        reasons.append("Highly recommended: Combined alpha/beta blocker reduces heart rate and arteriolar afterload.")
+                    elif drug_key == "diltiazem":
+                        score += 18.0
+                        reasons.append("Effective rate-control: Non-dihydropyridine CCB lowers nodal conduction and blood pressure.")
                     elif drug_key == "amlodipine":
                         score += 10.0
                         reasons.append("Effective BP reduction, but does not address elevated resting heart rate.")
-                    elif drug_key == "enalapril":
+                    elif drug_key in ("enalapril", "lisinopril"):
                         score += 10.0
                         reasons.append("Effective afterload reduction; renoprotective, neutral chronotropic effect.")
+                    elif drug_key == "losartan":
+                        score += 9.5
+                        reasons.append("Angiotensin receptor blocker reduces peripheral resistance without reflex tachycardia.")
+                    elif drug_key == "hydrochlorothiazide":
+                        score += 8.0
+                        reasons.append("Thiazide diuretic reduces volume and vascular stiffness.")
                 # Patient has bradycardia or borderline low HR (HR <= 65)
                 elif base_hr <= 65:
                     if drug_key == "metoprolol":
                         score -= 35.0
                         warning = True
                         reasons.append("CAUTION/UNSAFE: Risk of precipitating severe bradycardia (<50 bpm) with resting HR <= 65 bpm.")
+                    elif drug_key == "diltiazem":
+                        score -= 30.0
+                        warning = True
+                        reasons.append("CAUTION/UNSAFE: Non-DHP calcium channel blocker suppresses SA/AV node conduction in bradycardia.")
+                    elif drug_key == "carvedilol":
+                        score -= 25.0
+                        warning = True
+                        reasons.append("Caution: Beta-blocking component may depress borderline resting heart rate.")
                     elif drug_key == "amlodipine":
                         score += 18.0
                         reasons.append("Preferred agent: Lowers peripheral resistance without chronotropic suppression.")
+                    elif drug_key == "losartan":
+                        score += 17.0
+                        reasons.append("Preferred ARB: Selective AT1 antagonism with zero chronotropic suppression.")
+                    elif drug_key == "lisinopril":
+                        score += 16.5
+                        reasons.append("Safe long-acting ACE inhibitor: Well-tolerated arterial dilation without bradycardic liability.")
                     elif drug_key == "enalapril":
                         score += 16.0
                         reasons.append("Safe choice: Well-tolerated arterial dilation with zero bradycardic liability.")
+                    elif drug_key == "hydrochlorothiazide":
+                        score += 14.0
+                        reasons.append("Safe diuretic: Modulates blood pressure with neutral chronotropic effect.")
                 else:
                     # Balanced adult hypertension (HR between 65 and 82)
                     if p.ef < 0.50:
@@ -131,30 +160,58 @@ def evaluate_drug_safety(
                         if drug_key == "enalapril":
                             score += 19.0
                             reasons.append("First-line ACE inhibitor: Renoprotective afterload reduction promotes reverse remodeling in reduced EF.")
+                        elif drug_key == "lisinopril":
+                            score += 18.5
+                            reasons.append("First-line long-acting ACE inhibitor: Strong afterload reduction for heart failure remodeling.")
+                        elif drug_key == "losartan":
+                            score += 18.0
+                            reasons.append("First-line ARB: Proven neurohormonal blockade for heart failure with reduced EF.")
+                        elif drug_key == "carvedilol":
+                            score += 17.0
+                            reasons.append("Guideline-directed medical therapy: Proven mortality benefit and reverse remodeling in HFrEF.")
                         elif drug_key == "amlodipine":
                             score += 15.0
                             reasons.append("Safe alternative: Peripheral dilation without direct negative inotropy.")
+                        elif drug_key == "hydrochlorothiazide":
+                            score += 14.0
+                            reasons.append("Adjunctive diuretic: Relieves circulatory congestion and reduces preload.")
                         elif drug_key == "metoprolol":
                             score += 5.0
                             reasons.append("Secondary agent: Rate control benefit, but monitor negative inotropic effect.")
+                        elif drug_key == "diltiazem":
+                            score -= 20.0
+                            warning = True
+                            reasons.append("AVOID in reduced EF: Non-DHP calcium channel blockers exhibit negative inotropy.")
                     else:
                         if drug_key == "amlodipine":
                             score += 18.0
                             reasons.append("First-line dihydropyridine CCB provides steady, predictable 24h pressure control.")
+                        elif drug_key == "losartan":
+                            score += 17.0
+                            reasons.append("First-line ARB: Highly tolerated vascular resistance reduction without cough risk.")
+                        elif drug_key == "lisinopril":
+                            score += 16.5
+                            reasons.append("First-line ACE inhibitor: Renoprotective 24-hour afterload reduction.")
                         elif drug_key == "enalapril":
                             score += 16.0
                             reasons.append("First-line ACE inhibitor reduces vascular resistance and cardiac afterload.")
-                        elif drug_key == "metoprolol":
+                        elif drug_key == "hydrochlorothiazide":
+                            score += 14.0
+                            reasons.append("First-line thiazide: Effective volume and vascular stiffness reduction.")
+                        elif drug_key == "carvedilol":
+                            score += 10.0
+                            reasons.append("Dual alpha/beta blockade lowers rate-pressure product and systemic resistance.")
+                        elif drug_key in ("metoprolol", "diltiazem"):
                             score += 8.0
                             reasons.append("Secondary agent: Effectively lowers rate-pressure product.")
 
         # Clinical Condition 3: Normotensive (SBP 90-139, DBP 60-89, HR 60-80)
         else:
-            if drug_key == "phenylephrine":
+            if drug_key in ("phenylephrine", "norepinephrine"):
                 score -= 50.0
                 contraindicated = True
                 reasons.append("Not indicated: Vasopressor unneeded in normotensive baseline.")
-            elif drug_key in ("amlodipine", "enalapril"):
+            elif drug_key in ("amlodipine", "enalapril", "lisinopril", "losartan", "hydrochlorothiazide"):
                 if min_map < 65 or min_sbp < 90:
                     score -= 30.0
                     warning = True
@@ -162,7 +219,7 @@ def evaluate_drug_safety(
                 else:
                     score += 5.0
                     reasons.append("Well-tolerated if mild titration is desired; monitor for hypotension.")
-            elif drug_key == "metoprolol":
+            elif drug_key in ("metoprolol", "carvedilol", "diltiazem"):
                 if min_hr < 52:
                     score -= 25.0
                     warning = True

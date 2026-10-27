@@ -2,9 +2,15 @@ import { Num, field } from "./ui.jsx";
 
 const drugDescriptions = {
   phenylephrine: "Raises blood pressure (IV vasopressor)",
+  norepinephrine: "Raises blood pressure & inotropy (IV vasopressor)",
   amlodipine: "Lowers blood pressure (calcium channel blocker)",
-  metoprolol: "Lowers heart rate and blood pressure (beta blocker)",
+  diltiazem: "Lowers heart rate & blood pressure (non-DHP calcium channel blocker)",
+  metoprolol: "Lowers heart rate & blood pressure (beta-blocker)",
+  carvedilol: "Lowers heart rate & arterial resistance (alpha/beta blocker)",
   enalapril: "Lowers blood pressure (ACE inhibitor)",
+  lisinopril: "Lowers blood pressure (long-acting ACE inhibitor)",
+  losartan: "Lowers blood pressure (angiotensin II receptor blocker)",
+  hydrochlorothiazide: "Lowers blood pressure & fluid volume (thiazide diuretic)",
 };
 
 export default function DrugSlider({ item, drugs, onChange, onPick, onRemove }) {

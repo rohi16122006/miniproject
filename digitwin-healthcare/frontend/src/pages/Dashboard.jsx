@@ -26,20 +26,50 @@ const defaultDrugs = {
     default_dose: 5,
     interval_h: 24,
   },
-  metoprolol: {
-    label: "Metoprolol (beta-blocker)",
+  losartan: {
+    label: "Losartan (ARB)",
     default_dose: 50,
-    interval_h: 12,
+    interval_h: 24,
+  },
+  lisinopril: {
+    label: "Lisinopril (ACE inhibitor)",
+    default_dose: 10,
+    interval_h: 24,
   },
   enalapril: {
     label: "Enalapril (ACE inhibitor)",
     default_dose: 10,
     interval_h: 24,
   },
+  hydrochlorothiazide: {
+    label: "Hydrochlorothiazide (thiazide diuretic)",
+    default_dose: 25,
+    interval_h: 24,
+  },
+  metoprolol: {
+    label: "Metoprolol (beta-blocker)",
+    default_dose: 50,
+    interval_h: 12,
+  },
+  carvedilol: {
+    label: "Carvedilol (alpha/beta blocker)",
+    default_dose: 12.5,
+    interval_h: 12,
+  },
+  diltiazem: {
+    label: "Diltiazem (non-DHP calcium channel blocker)",
+    default_dose: 120,
+    interval_h: 24,
+  },
   phenylephrine: {
-    label: "Phenylephrine (IV vasopressor bolus/infusion)",
+    label: "Phenylephrine (IV vasopressor)",
     default_dose: 0.1,
     interval_h: 1,
+  },
+  norepinephrine: {
+    label: "Norepinephrine (IV vasopressor)",
+    default_dose: 0.04,
+    interval_h: 0.5,
   },
 };
 
