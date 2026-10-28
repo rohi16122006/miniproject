@@ -328,11 +328,15 @@ export default function Dashboard() {
               initialFile={ecgReportFile}
               onFileSelected={setECGReportFile}
               onApplyToPatient={(vals) => setPatient((p) => ({ ...p, ...vals }))}
-              onApplyECGRecommendation={(drugRec, hr) => {
-                const updatedPatient = hr != null ? { ...patient, hr } : { ...patient };
-                if (hr != null) {
-                  setPatient(updatedPatient);
-                }
+              onApplyECGRecommendation={(drugRec, vitalsOrHr) => {
+                const vitals = typeof vitalsOrHr === "object" && vitalsOrHr !== null
+                  ? vitalsOrHr
+                  : vitalsOrHr != null ? { hr: vitalsOrHr } : {};
+                const updatedPatient = {
+                  ...patient,
+                  ...vitals,
+                };
+                setPatient(updatedPatient);
                 const newReg = drugRec?.regimen || regimen;
                 if (drugRec?.regimen) {
                   setRegimen(drugRec.regimen);

@@ -276,6 +276,83 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
             </>
           )}
 
+          {/* Extracted Patient Demographics & Vitals */}
+          {analysis.patient_vitals && Object.keys(analysis.patient_vitals).length > 0 && (
+            <div className="rounded-lg border border-teal-200 bg-teal-50/70 p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold text-teal-950 uppercase tracking-wide">
+                    Patient Demographics & Vitals Extracted from Report
+                  </h4>
+                  <p className="text-[11px] text-teal-800">
+                    Recognized from the uploaded document and ready to sync with the patient profile.
+                  </p>
+                </div>
+                {onApplyToPatient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onApplyToPatient(analysis.patient_vitals);
+                    }}
+                    className="rounded bg-teal-800 hover:bg-teal-900 text-white px-3 py-1.5 text-xs font-bold transition cursor-pointer shadow-sm"
+                  >
+                    Apply All Extracted Vitals to Patient Profile
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {analysis.patient_vitals.name && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Patient Name</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.name}</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.patient_id && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Patient ID / MRN</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.patient_id}</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.age != null && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Age</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.age} yrs</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.sex && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Sex</span>
+                    <span className="text-xs font-bold text-teal-950 capitalize">{analysis.patient_vitals.sex}</span>
+                  </div>
+                )}
+                {(analysis.patient_vitals.sbp != null || analysis.patient_vitals.dbp != null) && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Blood Pressure</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.sbp}/{analysis.patient_vitals.dbp} mmHg</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.hr != null && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Heart Rate</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.hr} bpm</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.ef != null && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">Ejection Fraction</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.ef}%</span>
+                  </div>
+                )}
+                {analysis.patient_vitals.edv_ml != null && (
+                  <div className="rounded bg-white border border-teal-100 p-2">
+                    <span className="text-[10px] text-gray-500 block">End-Diastolic Vol</span>
+                    <span className="text-xs font-bold text-teal-950">{analysis.patient_vitals.edv_ml} mL</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Extracted Clinical & Physiological Measurements */}
           {analysis.measurements && (
             <div>
@@ -437,10 +514,13 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
                       <button
                         type="button"
                         onClick={() => {
-                          const hr = analysis?.measurements?.heart_rate_bpm != null
-                            ? Number(analysis.measurements.heart_rate_bpm)
-                            : null;
-                          onApplyECGRecommendation(drugRec, hr);
+                          const vitalsToApply = {
+                            ...(analysis?.patient_vitals || {}),
+                          };
+                          if (analysis?.measurements?.heart_rate_bpm != null) {
+                            vitalsToApply.hr = Number(analysis.measurements.heart_rate_bpm);
+                          }
+                          onApplyECGRecommendation(drugRec, vitalsToApply);
                         }}
                         className="rounded bg-teal-800 hover:bg-teal-900 text-white font-bold px-3.5 py-2 text-xs transition cursor-pointer shadow-sm inline-flex items-center gap-1.5"
                       >

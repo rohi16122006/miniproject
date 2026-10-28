@@ -136,6 +136,7 @@ def _digitize_waveform_image(image_bytes: bytes, filename: str) -> dict | None:
                 "model_input_not_imputed": True,
             },
             "measurements": measurements,
+            "patient_vitals": {"hr": round(float(heart_rate), 1)} if heart_rate is not None else {},
             "waveform_preview": preview,
             "extracted_text": None,
             "warnings": warnings,
@@ -206,7 +207,7 @@ def analyze_file(
             parsed_report = _analyze_report(filename, "Image report (browser OCR)", ocr_text[:100_000])
 
         # 2. If OCR extracted a valid heart rate, use text report
-        if parsed_report and parsed_report.get("measurements", {}).get("heart_rate_bpm") is not None:
+        if parsed_report and (parsed_report.get("measurements", {}).get("heart_rate_bpm") is not None or parsed_report.get("patient_vitals")):
             raw_result = parsed_report
         else:
             # 3. Otherwise, image is a visual ECG waveform tracing! Digitize pixels directly
@@ -462,6 +463,7 @@ def _analyze_waveform(filename: str, detected_format: str, signal, sample_rate, 
             "model_input_not_imputed": True,
         },
         "measurements": _extract_waveform_measurements(filtered, rate, leads, duration),
+        "patient_vitals": {"hr": round(float(wf_hr), 1)} if (wf_hr := _extract_waveform_measurements(filtered, rate, leads, duration).get("heart_rate_bpm")) is not None else {},
         "waveform_preview": {
             "time_seconds": [round(index / rate, 4) for index in preview_indices],
             "leads_mV": {
@@ -580,6 +582,113 @@ def _classify_report_text(text: str, measurements: dict) -> list[dict]:
     ]
 
 
+
+def _extract_patient_vitals_from_text(text: str) -> dict:
+    vitals = {}
+    
+    # 1. Patient Name
+    name_match = re.search(
+        r"\b(?:patient(?:\s+name)?|pt\s+name)\s*[:=-]\s*([A-Za-z][A-Za-z.'-]*(?:[ \t][A-Za-z][A-Za-z.'-]*){0,3})(?=[ \t]{2,}|\s*[,;\r\n]|\s*(?:MRN|ID|Age|Sex|DOB|Date|$))",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not name_match:
+        for line in text.splitlines():
+            if re.search(r"\b(?:doctor|dr\b|physician|provider|cardiologist|nurse|technician|hospital|facility|clinic|center|test|study)", line, re.IGNORECASE):
+                continue
+            gm = re.search(
+                r"\bname\s*[:=-]\s*([A-Za-z][A-Za-z.'-]*(?:[ \t][A-Za-z][A-Za-z.'-]*){0,3})(?=[ \t]{2,}|\s*[,;\r\n]|\s*(?:MRN|ID|Age|Sex|DOB|Date|$))",
+                line,
+                flags=re.IGNORECASE,
+            )
+            if gm:
+                name_match = gm
+                break
+
+    if name_match:
+        cand = name_match.group(1).strip().rstrip(",;:")
+        disallowed = {"male", "female", "unknown", "none", "na", "n/a", "null", "patient", "demographics", "information", "report", "clinical", "evaluation", "normal"}
+        if len(cand) >= 2 and cand.lower() not in disallowed:
+            vitals["name"] = cand
+
+    # 2. Patient ID / MRN
+    id_match = re.search(
+        r"\b(?:MRN(?:\s*[\/|]\s*ID)?|patient\s*(?:id|mrn|identifier|#)|pt\s*(?:id|mrn|#)|chart\s*(?:id|#)|record\s*(?:id|#)|subject\s*(?:id|#))\s*[:=-]\s*([A-Za-z0-9\-_]{2,25})\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if not id_match:
+        for line in text.splitlines():
+            if re.search(r"\b(?:lead|trace|device|channel|sensor|probe|test)\b", line, re.IGNORECASE):
+                continue
+            m = re.search(r"\b(?:ID|Ref(?:\s*#)?)\s*[:=-]\s*([A-Za-z0-9\-_]{2,25})\b", line, flags=re.IGNORECASE)
+            if m:
+                cand_id = m.group(1).strip()
+                disallowed_id = {"ii", "iii", "avr", "avl", "avf", "v1", "v2", "v3", "v4", "v5", "v6", "none", "null", "normal"}
+                if cand_id.lower() not in disallowed_id:
+                    vitals["patient_id"] = cand_id
+                    break
+    elif id_match:
+        cand_id = id_match.group(1).strip()
+        disallowed_id = {"ii", "iii", "avr", "avl", "avf", "v1", "v2", "v3", "v4", "v5", "v6", "none", "null", "normal"}
+        if cand_id.lower() not in disallowed_id:
+            vitals["patient_id"] = cand_id
+
+    # 3. Blood Pressure (BP)
+    bp_match = re.search(r"\b(?:BP|blood\s+pressure)\s*[:=-]?\s*(\d{2,3})\s*(?:\/|over)\s*(\d{2,3})\b", text, flags=re.IGNORECASE)
+    if bp_match:
+        sbp_val = float(bp_match.group(1))
+        dbp_val = float(bp_match.group(2))
+        if 40 <= sbp_val <= 260:
+            vitals["sbp"] = sbp_val
+        if 20 <= dbp_val <= 180:
+            vitals["dbp"] = dbp_val
+    else:
+        sys_match = re.search(r"\b(?:systolic(?:\s+BP)?)\s*[:=-]?\s*(\d{2,3})\b", text, flags=re.IGNORECASE)
+        dia_match = re.search(r"\b(?:diastolic(?:\s+BP)?)\s*[:=-]?\s*(\d{2,3})\b", text, flags=re.IGNORECASE)
+        if sys_match:
+            val = float(sys_match.group(1))
+            if 40 <= val <= 260:
+                vitals["sbp"] = val
+        if dia_match:
+            val = float(dia_match.group(1))
+            if 20 <= val <= 180:
+                vitals["dbp"] = val
+
+    # 4. Age
+    age_match = re.search(r"\bage\s*[:=-]?\s*(\d{1,3})\b", text, flags=re.IGNORECASE)
+    if age_match:
+        age_val = float(age_match.group(1))
+        if 18 <= age_val <= 100:
+            vitals["age"] = int(age_val)
+
+    # 5. Sex
+    sex_match = re.search(r"\b(?:sex|gender)\s*[:=-]?\s*(male|female|m|f)\b", text, flags=re.IGNORECASE)
+    if sex_match:
+        vitals["sex"] = "male" if sex_match.group(1).lower().startswith("m") else "female"
+
+    # 6. Heart Rate
+    hr_match = re.search(r"\b(?:HR|heart\s*rate|pulse|ventricular\s*rate)\s*[:=-]?\s*(\d{2,3}(?:\.\d+)?)\s*(?:bpm)?\b", text, flags=re.IGNORECASE)
+    if hr_match:
+        hr_val = float(hr_match.group(1))
+        if 30 <= hr_val <= 220:
+            vitals["hr"] = hr_val
+
+    # 7. Ejection Fraction (EF)
+    ef_match = re.search(r"\b(?:EF|ejection\s+fraction|LVEF)\s*[:=-]?\s*(\d{1,3}(?:\.\d+)?)\s*%?", text, flags=re.IGNORECASE)
+    if ef_match:
+        ef_val = float(ef_match.group(1))
+        if 15 <= ef_val <= 85:
+            vitals["ef"] = ef_val
+
+    # 8. End-Diastolic Volume (EDV)
+    edv_match = re.search(r"\b(?:EDV|end[-\s]?diastolic\s+volume|LV\s+EDV)\s*[:=-]?\s*(\d{2,3}(?:\.\d+)?)\s*(?:ml|mL)?\b", text, flags=re.IGNORECASE)
+    if edv_match:
+        edv_val = float(edv_match.group(1))
+        if 40 <= edv_val <= 300:
+            vitals["edv_ml"] = edv_val
+
+    return vitals
 def _analyze_report(filename: str, detected_format: str, text: str) -> dict:
     measurements = _empty_measurements()
     patterns = {
@@ -601,6 +710,10 @@ def _analyze_report(filename: str, detected_format: str, text: str) -> dict:
     if interpretation:
         measurements["reported_interpretation"] = interpretation.group(1).strip()[:500]
 
+    patient_vitals = _extract_patient_vitals_from_text(text)
+    if "hr" not in patient_vitals and measurements.get("heart_rate_bpm") is not None:
+        patient_vitals["hr"] = measurements["heart_rate_bpm"]
+
     missing = [key for key, value in measurements.items() if value is None]
     warnings = [
         "Extracted measurements and report text are unverified. Review against the original report.",
@@ -621,6 +734,7 @@ def _analyze_report(filename: str, detected_format: str, text: str) -> dict:
         "sample_count": None,
         "signal_quality": None,
         "measurements": measurements,
+        "patient_vitals": patient_vitals,
         "missing_measurements": missing,
         "waveform_preview": None,
         "extracted_text": text[:100_000],

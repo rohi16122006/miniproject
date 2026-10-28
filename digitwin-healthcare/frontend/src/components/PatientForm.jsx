@@ -53,7 +53,10 @@ export default function PatientForm({ patient, setPatient, onECGReportSelected }
       </div>
 
       <ReportScanner onApply={(values) => setPatient((current) => ({ ...current, ...values }))} />
-      <ECGReportCapture onImageSelected={onECGReportSelected} />
+      <ECGReportCapture
+        onImageSelected={onECGReportSelected}
+        onApplyVitals={(values) => setPatient((current) => ({ ...current, ...values }))}
+      />
 
       <div className="grid grid-cols-2 gap-3.5">
         <Num name="Age" unit="years" value={patient.age} onChange={set("age")} min={18} max={100} />

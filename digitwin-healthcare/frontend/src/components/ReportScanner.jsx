@@ -58,11 +58,15 @@ export default function ReportScanner({ onApply }) {
       const { data } = await worker.recognize(image);
       const found = parseReportVitals(data.text);
       setCaptured(found);
-      setStatus(
-        Object.keys(found).length
-          ? "Review the extracted values and correct anything that does not match the report."
-          : "No supported values were recognized. Try a clearer image or enter the values manually."
-      );
+      const count = Object.keys(found).length;
+      if (count > 0) {
+        onApply?.(found);
+        setStatus(
+          `Extracted ${count} field${count > 1 ? "s" : ""} and applied to Patient Profile. Review or adjust values below if needed.`
+        );
+      } else {
+        setStatus("No supported values were recognized. Try a clearer image or enter the values manually.");
+      }
     } catch (scanError) {
       setError(`Could not read the report image: ${scanError.message}`);
       setStatus("");
@@ -240,7 +244,6 @@ export default function ReportScanner({ onApply }) {
                   );
                   onApply(values);
                   setStatus("Reviewed values applied to the patient form.");
-                  setCaptured({});
                 }}
                 className="w-full rounded-md bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800"
               >

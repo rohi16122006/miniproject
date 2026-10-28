@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { parseReportVitals } from "./reportParser.js";
 
-export default function ECGReportCapture({ onImageSelected }) {
+export default function ECGReportCapture({ onImageSelected, onApplyVitals }) {
   const [report, setReport] = useState(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractStatus, setExtractStatus] = useState("");
   const [error, setError] = useState("");
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -45,8 +48,9 @@ export default function ECGReportCapture({ onImageSelected }) {
     }
   }
 
-  function saveImage(file) {
+  async function saveImage(file) {
     setError("");
+    setExtractStatus("");
     if (!file.type.startsWith("image/")) {
       setError("Choose an image file for the ECG report.");
       return;
@@ -55,6 +59,37 @@ export default function ECGReportCapture({ onImageSelected }) {
     setReport({ name: file.name, url: URL.createObjectURL(file) });
     onImageSelected?.(file);
     stopCamera();
+
+    if (onApplyVitals) {
+      setExtracting(true);
+      setExtractStatus("Reading report for vitals and patient demographics...");
+      let worker;
+      try {
+        const { createWorker } = await import("tesseract.js");
+        worker = await createWorker("eng");
+        const { data } = await worker.recognize(file);
+        const vitals = parseReportVitals(data.text);
+        const count = Object.keys(vitals).length;
+        if (count > 0) {
+          onApplyVitals(vitals);
+          const previewList = [];
+          if (vitals.name) previewList.push(`Name: ${vitals.name}`);
+          if (vitals.patient_id) previewList.push(`ID: ${vitals.patient_id}`);
+          if (vitals.sbp && vitals.dbp) previewList.push(`BP: ${vitals.sbp}/${vitals.dbp}`);
+          if (vitals.hr) previewList.push(`HR: ${vitals.hr} bpm`);
+          setExtractStatus(
+            `Extracted and populated ${count} field${count > 1 ? "s" : ""} to Patient Profile (${previewList.slice(0, 3).join(", ")})`
+          );
+        } else {
+          setExtractStatus("Image loaded for ECG analysis. No text report vitals detected on image.");
+        }
+      } catch {
+        setExtractStatus("");
+      } finally {
+        await worker?.terminate();
+        setExtracting(false);
+      }
+    }
   }
 
   function capturePhoto() {
@@ -86,6 +121,7 @@ export default function ECGReportCapture({ onImageSelected }) {
     setReport(null);
     onImageSelected?.(null);
     setError("");
+    setExtractStatus("");
     if (fileRef.current) fileRef.current.value = "";
   }
 
@@ -143,6 +179,16 @@ export default function ECGReportCapture({ onImageSelected }) {
           >
             Capture ECG report
           </button>
+        </div>
+      )}
+
+      {extracting && (
+        <p className="text-xs font-medium text-teal-800" role="status">{extractStatus}</p>
+      )}
+
+      {!extracting && extractStatus && (
+        <div className="rounded border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-xs text-emerald-900 font-medium">
+          {extractStatus}
         </div>
       )}
 

@@ -74,3 +74,26 @@ BP: 118/78
   assert.equal(parsed.name, "Jane Doe");
   assert.equal(parsed.patient_id, "JD-994");
 });
+
+test("parses OCR output with single space between name and MRN", () => {
+  const ocrText = `COMPREHENSIVE PATIENT EVALUATION & ELECTROPHYSIOLOGY REPORT
+PATIENT DEMOGRAPHICS
+Patient Name: Rajesh Sharma MRN / ID: PT-04829 Date: 28-OCT-2026
+Age: 56 Sex: Male Weight: 78 kg Height: 172 cm
+CLINICAL VITALS & HEMODYNAMICS
+Blood Pressure: BP: 145/92 mmHg Systolic BP: 145 mmHg | Diastolic BP: 92 mmHg
+Heart Rate: Heart Rate: 76 bpm Resting pulse: 76 bpm (Regular sinus rhythm)
+Ejection Fraction EF: 55% Left Ventricular Ejection Fraction (LVEF): 55 %
+End-Diastolic Volume: EDV: 120 ml LV End-Diastolic Volume: 120 mL (Normal geometry)`;
+
+  const parsed = parseReportVitals(ocrText);
+  assert.equal(parsed.name, "Rajesh Sharma");
+  assert.equal(parsed.patient_id, "PT-04829");
+  assert.equal(parsed.sbp, 145);
+  assert.equal(parsed.dbp, 92);
+  assert.equal(parsed.age, 56);
+  assert.equal(parsed.sex, "male");
+  assert.equal(parsed.hr, 76);
+  assert.equal(parsed.ef, 55);
+  assert.equal(parsed.edv_ml, 120);
+});
