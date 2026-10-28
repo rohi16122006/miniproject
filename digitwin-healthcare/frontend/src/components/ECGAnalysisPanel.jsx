@@ -437,10 +437,12 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
                       <button
                         type="button"
                         onClick={() => {
-                          const hr = analysis.measurements?.heart_rate_bpm ? Number(analysis.measurements.heart_rate_bpm) : null;
+                          const hr = analysis?.measurements?.heart_rate_bpm != null
+                            ? Number(analysis.measurements.heart_rate_bpm)
+                            : null;
                           onApplyECGRecommendation(drugRec, hr);
                         }}
-                        className="rounded bg-teal-800 hover:bg-teal-900 text-white font-bold px-3 py-2 text-xs transition cursor-pointer shadow-sm"
+                        className="rounded bg-teal-800 hover:bg-teal-900 text-white font-bold px-3.5 py-2 text-xs transition cursor-pointer shadow-sm inline-flex items-center gap-1.5"
                       >
                         Apply ECG Drug & Vitals to Simulation
                       </button>

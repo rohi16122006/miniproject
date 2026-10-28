@@ -333,10 +333,13 @@ export default function Dashboard() {
                 if (hr != null) {
                   setPatient(updatedPatient);
                 }
+                const newReg = drugRec?.regimen || regimen;
                 if (drugRec?.regimen) {
                   setRegimen(drugRec.regimen);
-                  executeSimulation(updatedPatient, drugRec.regimen, horizon);
                 }
+                executeSimulation(updatedPatient, newReg, horizon);
+                setWorkspaceTab("simulation");
+                window.scrollTo({ top: 350, behavior: "smooth" });
               }}
             />
           </section>
