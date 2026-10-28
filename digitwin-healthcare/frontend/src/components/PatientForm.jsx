@@ -13,21 +13,63 @@ export default function PatientForm({ patient, setPatient, onECGReportSelected }
   const edv = Number(patient.edv_ml) || 120;
   const hasBP = patient.sbp != null && patient.dbp != null;
 
-  const map = hasBP ? (dbp + (sbp - dbp) / 3).toFixed(1) : "--";
-  const pp = hasBP ? (sbp - dbp).toFixed(0) : "--";
-  const co = ((hr * ef * edv) / 1000).toFixed(2);
+  const mapNum = hasBP ? (dbp + (sbp - dbp) / 3) : null;
+  const map = mapNum != null ? mapNum.toFixed(1) : "--";
+  const ppNum = hasBP ? (sbp - dbp) : null;
+  const pp = ppNum != null ? ppNum.toFixed(0) : "--";
+  const coNum = (hr * ef * edv) / 1000;
+  const co = coNum.toFixed(2);
+
+  // Clinical hemodynamic status badges
+  const mapStatus = mapNum == null ? null : mapNum >= 70 && mapNum <= 100
+    ? { label: "Normal Perfusion", color: "text-emerald-700 bg-emerald-50 border-emerald-200" }
+    : mapNum > 100
+    ? { label: "Elevated Afterload", color: "text-amber-800 bg-amber-50 border-amber-200" }
+    : { label: "Hypoperfusion Risk", color: "text-rose-800 bg-rose-50 border-rose-200" };
+
+  const ppStatus = ppNum == null ? null : ppNum >= 30 && ppNum <= 50
+    ? { label: "Normal (30-50)", color: "text-emerald-700 bg-emerald-50 border-emerald-200" }
+    : ppNum > 50
+    ? { label: "Widened Pulse Pressure", color: "text-amber-800 bg-amber-50 border-amber-200" }
+    : { label: "Narrow Pulse Pressure", color: "text-slate-700 bg-slate-100 border-slate-200" };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4 shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4 shadow-sm hover:border-gray-300 transition-all">
       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-gray-700">
-          Patient Information
-        </h2>
-        <span className="text-xs text-gray-500 font-medium">Workspace inputs</span>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-gray-700">
+            Patient Information
+          </h2>
+          {patient.name && (
+            <span className="text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">
+              Live Patient Profile
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setPatient({
+              name: "John Doe",
+              patient_id: "PT-2026-081",
+              age: 58,
+              sex: "male",
+              hr: 72,
+              ef: 55,
+              sbp: 145,
+              dbp: 92,
+              edv_ml: 120,
+              south_asian_seeding: false,
+            });
+          }}
+          className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 hover:underline cursor-pointer"
+        >
+          Reset to default
+        </button>
       </div>
 
       {/* Patient Identification */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-lg border border-slate-200/80">
         <label className="block">
           <span className={label}>Patient Name</span>
           <input
@@ -78,22 +120,52 @@ export default function PatientForm({ patient, setPatient, onECGReportSelected }
         <Num name="Ejection Fraction" unit="%" value={patient.ef} onChange={set("ef")} min={15} max={85} />
       </div>
 
-      {/* Calculated values */}
-      <div className="bg-gray-50 border border-gray-200 rounded-md p-3 grid grid-cols-3 gap-2 text-center">
-        <div>
-          <span className="text-xs text-gray-500 block">{APPROXIMATE_MAP_LABEL}</span>
-          <span className="text-base font-bold text-gray-800">{map}</span>
-          <span className="text-xs text-gray-400 ml-1">mmHg</span>
+      {/* Calculated Hemodynamics Interactive Cards */}
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 grid grid-cols-3 gap-2.5 text-center">
+        <div
+          className="bg-white rounded border border-slate-200/80 p-2 shadow-xs transition hover:border-slate-300"
+          title="Mean Arterial Pressure calculated as DBP + 1/3 (SBP - DBP)"
+        >
+          <span className="text-[11px] text-gray-500 block truncate">{APPROXIMATE_MAP_LABEL}</span>
+          <div className="flex items-baseline justify-center gap-1 mt-0.5">
+            <span className="text-base font-bold text-gray-900 font-mono">{map}</span>
+            <span className="text-[11px] text-gray-400 font-sans">mmHg</span>
+          </div>
+          {mapStatus && (
+            <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded border font-medium ${mapStatus.color}`}>
+              {mapStatus.label}
+            </span>
+          )}
         </div>
-        <div>
-          <span className="text-xs text-gray-500 block">Pulse Pressure</span>
-          <span className="text-base font-bold text-gray-800">{pp}</span>
-          <span className="text-xs text-gray-400 ml-1">mmHg</span>
+
+        <div
+          className="bg-white rounded border border-slate-200/80 p-2 shadow-xs transition hover:border-slate-300"
+          title="Pulse Pressure = SBP - DBP; indicator of large artery stiffness"
+        >
+          <span className="text-[11px] text-gray-500 block truncate">Pulse Pressure</span>
+          <div className="flex items-baseline justify-center gap-1 mt-0.5">
+            <span className="text-base font-bold text-gray-900 font-mono">{pp}</span>
+            <span className="text-[11px] text-gray-400 font-sans">mmHg</span>
+          </div>
+          {ppStatus && (
+            <span className={`inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded border font-medium ${ppStatus.color}`}>
+              {ppStatus.label}
+            </span>
+          )}
         </div>
-        <div>
-          <span className="text-xs text-gray-500 block">Estimated Cardiac Output</span>
-          <span className="text-base font-bold text-gray-800">{co}</span>
-          <span className="text-xs text-gray-400 ml-1">L/min</span>
+
+        <div
+          className="bg-white rounded border border-slate-200/80 p-2 shadow-xs transition hover:border-slate-300"
+          title="Estimated Cardiac Output = (HR × EF × EDV) / 1000"
+        >
+          <span className="text-[11px] text-gray-500 block truncate">Est. Cardiac Output</span>
+          <div className="flex items-baseline justify-center gap-1 mt-0.5">
+            <span className="text-base font-bold text-gray-900 font-mono">{co}</span>
+            <span className="text-[11px] text-gray-400 font-sans">L/min</span>
+          </div>
+          <span className="inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded border font-medium text-emerald-700 bg-emerald-50 border-emerald-200">
+            Stroke Vol: {(ef * edv).toFixed(0)} mL
+          </span>
         </div>
       </div>
 

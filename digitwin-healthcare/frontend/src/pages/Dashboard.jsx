@@ -101,6 +101,8 @@ export default function Dashboard() {
   const [showDocs, setShowDocs] = useState(false);
   const [drugSearch, setDrugSearch] = useState("");
   const [showHeartViewer, setShowHeartViewer] = useState(false);
+  const [activePreset, setActivePreset] = useState("hypertension");
+  const [copiedNote, setCopiedNote] = useState(false);
 
   // Helper function to execute the simulation
   async function executeSimulation(currentPatient, currentRegimen, currentHorizon) {
@@ -139,6 +141,7 @@ export default function Dashboard() {
   }, []);
 
   const applyPreset = (type) => {
+    setActivePreset(type);
     let newPatient = { ...patient };
     let newRegimen = [...regimen];
     let newHorizon = horizon;
@@ -271,20 +274,23 @@ export default function Dashboard() {
 
       {/* 2. FULL-WIDTH DESKTOP WORKSPACE */}
       <main className="flex-1 w-full px-6 lg:px-10 py-6 space-y-6">
-        <div role="tablist" aria-label="DigiTwin workspace" className="flex gap-2 border-b border-gray-200">
+        <div role="tablist" aria-label="DigiTwin workspace" className="flex flex-wrap items-center gap-2 border-b border-gray-200 pb-px">
           <button
             type="button"
             role="tab"
             aria-selected={workspaceTab === "simulation"}
             aria-controls="simulation-workspace"
             onClick={() => setWorkspaceTab("simulation")}
-            className={`border-b-2 px-4 py-2 text-xs font-bold ${
+            className={`border-b-2 px-4 py-2 text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
               workspaceTab === "simulation"
-                ? "border-teal-700 text-teal-900"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                ? "border-teal-700 text-teal-900 bg-teal-50/50 rounded-t"
+                : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-t"
             }`}
           >
-            Simulation
+            <span>Simulation</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-teal-100 text-teal-800">
+              0D Physics
+            </span>
           </button>
           <button
             type="button"
@@ -292,13 +298,16 @@ export default function Dashboard() {
             aria-selected={workspaceTab === "ecg"}
             aria-controls="ecg-analysis-workspace"
             onClick={() => setWorkspaceTab("ecg")}
-            className={`border-b-2 px-4 py-2 text-xs font-bold ${
+            className={`border-b-2 px-4 py-2 text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
               workspaceTab === "ecg"
-                ? "border-teal-700 text-teal-900"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                ? "border-teal-700 text-teal-900 bg-teal-50/50 rounded-t"
+                : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-t"
             }`}
           >
-            ECG Analysis
+            <span>ECG Analysis</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-emerald-100 text-emerald-800">
+              Waveform &amp; Report
+            </span>
           </button>
           <button
             type="button"
@@ -306,13 +315,16 @@ export default function Dashboard() {
             aria-selected={workspaceTab === "forecast"}
             aria-controls="forecast-workspace"
             onClick={() => setWorkspaceTab("forecast")}
-            className={`border-b-2 px-4 py-2 text-xs font-bold ${
+            className={`border-b-2 px-4 py-2 text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
               workspaceTab === "forecast"
-                ? "border-teal-700 text-teal-900"
-                : "border-transparent text-gray-600 hover:text-gray-900"
+                ? "border-teal-700 text-teal-900 bg-teal-50/50 rounded-t"
+                : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-t"
             }`}
           >
-            Time-Series Vitals Forecast
+            <span>Time-Series Vitals Forecast</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-indigo-100 text-indigo-800">
+              ML Forecaster
+            </span>
           </button>
         </div>
 
@@ -358,39 +370,63 @@ export default function Dashboard() {
         ) : (
           <div id="simulation-workspace" role="tabpanel" aria-label="Simulation">
         {/* Quick Clinical Scenarios Bar */}
-        <div className="bg-white border border-gray-200 rounded-lg p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-white border border-gray-200 rounded-lg p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-3 hover:border-slate-300 transition-all">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-teal-600 inline-block"></span>
               Clinical Scenarios:
             </span>
             <button
               type="button"
               onClick={() => applyPreset("hypertension")}
-              className="bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer"
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer border ${
+                activePreset === "hypertension"
+                  ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                  : "bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200"
+              }`}
             >
               High Blood Pressure
             </button>
             <button
               type="button"
               onClick={() => applyPreset("normotensive")}
-              className="bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer"
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer border ${
+                activePreset === "normotensive"
+                  ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                  : "bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200"
+              }`}
             >
               Normal Adult
             </button>
             <button
               type="button"
               onClick={() => applyPreset("stiff_aorta")}
-              className="bg-gray-50 hover:bg-gray-100 text-gray-800 border border-gray-200 px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer"
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer border ${
+                activePreset === "stiff_aorta"
+                  ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                  : "bg-gray-50 hover:bg-gray-100 text-gray-800 border-gray-200"
+              }`}
             >
               Elderly Patient
             </button>
             <button
               type="button"
               onClick={() => applyPreset("overdose")}
-              className="bg-red-50 hover:bg-red-100 text-red-900 border border-red-200 px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer"
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition cursor-pointer border ${
+                activePreset === "overdose"
+                  ? "bg-red-800 text-white border-red-800 shadow-xs"
+                  : "bg-red-50 hover:bg-red-100 text-red-900 border-red-200"
+              }`}
             >
               High-Dose Scenario
             </button>
+          </div>
+          <div className="text-[11px] text-slate-500 font-medium hidden md:block">
+            {activePreset === "hypertension" && "Stage 1 Essential HTN · Amlodipine 10mg + Enalapril 20mg (48h)"}
+            {activePreset === "normotensive" && "Healthy Adult Baseline · Standard First-Line Monotherapy (24h)"}
+            {activePreset === "stiff_aorta" && "Isolated Systolic HTN · Widened Pulse Pressure 104 mmHg (24h)"}
+            {activePreset === "overdose" && "Intensive Vasopressor Protocol · Boundary Safety Testing (24h)"}
+            {activePreset === "custom" && "Custom workspace session parameters"}
           </div>
         </div>
 
@@ -546,8 +582,32 @@ export default function Dashboard() {
                   &bull; {result.model.source}
                 </span>
               </div>
-              <div className="text-gray-500 font-medium">
-                Session: {result.run_id} &bull; Duration: {horizon} hours &bull; Latency: {result.latency_ms} ms
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 font-medium">
+                  Session: {result.run_id} &bull; Latency: {result.latency_ms} ms
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const note = [
+                      "DIGITWIN CARDIOVASCULAR SIMULATION SUMMARY",
+                      `Patient: ${patient.name || "Anonymous"} (MRN: ${patient.patient_id || "PT-001"})`,
+                      `Demographics: Age ${patient.age}, ${patient.sex}`,
+                      `Baseline BP: ${result.baseline.sbp}/${result.baseline.dbp} mmHg (MAP ${result.baseline.map} mmHg, HR ${result.baseline.hr} bpm, EF ${result.baseline.ef}%)`,
+                      `Regimen: ${regimen.map(r => `${r.drug} ${r.dose_mg}mg q${r.interval_h}h x${r.n_doses}`).join(" + ")}`,
+                      `Simulation Duration: ${horizon} hours`,
+                      `Simulated Outcome: BP ${last.sbp}/${last.dbp} mmHg (MAP ${last.map} mmHg, HR ${last.hr} bpm)`,
+                      `MAP Delta: ${(last.map - result.baseline.map).toFixed(1)} mmHg`,
+                      `Safety Assessment: ${result.drug_safety?.status_message || result.risk}`,
+                    ].join("\n");
+                    navigator.clipboard.writeText(note);
+                    setCopiedNote(true);
+                    setTimeout(() => setCopiedNote(false), 2500);
+                  }}
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 transition cursor-pointer"
+                >
+                  {copiedNote ? "Copied Note!" : "Copy Summary Note"}
+                </button>
               </div>
             </div>
 
