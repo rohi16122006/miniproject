@@ -189,3 +189,4 @@ def train_and_save_artifact(out_dir: Path):
 if __name__ == "__main__":
     out = Path(__file__).resolve().parent / "ecg_artifacts"
     train_and_save_artifact(out)
+

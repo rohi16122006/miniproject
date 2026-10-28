@@ -1,0 +1,38 @@
+METROPOLITAN CARDIOLOGY CLINICAL CENTER
+COMPREHENSIVE PATIENT EVALUATION & ELECTROPHYSIOLOGY REPORT
+Date: 28-OCT-2026   Facility: Cardio-Diagnostic Wing   Ref: PT-04829
+
+================================================================================
+PATIENT DEMOGRAPHICS
+================================================================================
+Patient Name: Rajesh Sharma              MRN / ID: PT-04829
+Age: 56                                  Sex: Male
+Weight: 78 kg                            Height: 172 cm
+
+================================================================================
+CLINICAL VITALS & HEMODYNAMICS
+================================================================================
+Blood Pressure:        BP: 145/92 mmHg  (Systolic: 145 mmHg, Diastolic: 92 mmHg)
+Heart Rate:            Heart Rate: 76 bpm  (Resting pulse: 76 bpm, regular)
+Ejection Fraction:     EF: 55%  (Left Ventricular EF within normal range)
+End-Diastolic Volume:  EDV: 120 ml  (Normal left ventricular end-diastolic geometry)
+
+================================================================================
+12-LEAD ELECTROCARDIOGRAM (ECG) ANALYSIS
+================================================================================
+Ventricular Rate:      Heart rate: 76 bpm
+PR Interval:           PR interval: 160 ms  (Normal AV nodal conduction)
+QRS Duration:          QRS duration: 88 ms  (Normal intraventricular conduction)
+QT Interval:           QT interval: 395 ms
+QTc Interval (Bazett): QTc interval: 422 ms  (Normal repolarization, QTc < 440 ms)
+Reported interpretation: Normal Sinus Rhythm. Normal ECG, no ischemic ST changes or AV blocks.
+
+================================================================================
+CLINICAL IMPRESSION & RECOMMENDATION
+================================================================================
+1. Assessment: Stage 1 Essential Hypertension with preserved left ventricular function.
+2. Electrophysiology: Intact SA/AV nodal conduction. Zero repolarization abnormalities.
+3. Indicated Therapy: First-line arterial vasodilation with Amlodipine 5 mg once daily.
+4. Digital Twin: Calibrate 0D Windkessel physical model with baseline BP 145/92 mmHg, HR 76 bpm.
+
+Validated by: Dr. Evelyn Vance, MD, FACC | License #CA-892410
