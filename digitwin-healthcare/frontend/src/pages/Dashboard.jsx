@@ -328,6 +328,16 @@ export default function Dashboard() {
               initialFile={ecgReportFile}
               onFileSelected={setECGReportFile}
               onApplyToPatient={(vals) => setPatient((p) => ({ ...p, ...vals }))}
+              onApplyECGRecommendation={(drugRec, hr) => {
+                const updatedPatient = hr != null ? { ...patient, hr } : { ...patient };
+                if (hr != null) {
+                  setPatient(updatedPatient);
+                }
+                if (drugRec?.regimen) {
+                  setRegimen(drugRec.regimen);
+                  executeSimulation(updatedPatient, drugRec.regimen, horizon);
+                }
+              }}
             />
           </section>
         ) : workspaceTab === "forecast" ? (

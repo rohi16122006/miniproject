@@ -1,0 +1,14 @@
+{
+  "version": "ptbxl-logistic-v1",
+  "feature_version": "ptbxl-time-frequency-v1",
+  "feature_count": 156,
+  "dataset": "PTB-XL 1.0.3",
+  "task": "diagnostic-superclass multi-label classification",
+  "classes": [
+    "CD",
+    "HYP",
+    "MI",
+    "NORM",
+    "STTC"
+  ]
+}

@@ -506,3 +506,221 @@ def evaluate_drug_safety(
         "switch_regimen": switch_regimen,
         "recommendations": evaluations,
     }
+
+
+def recommend_drug_for_ecg(
+    ecg_data: Dict[str, Any],
+    patient_vitals: Optional[Any] = None
+) -> Dict[str, Any]:
+    """Analyze ECG measurements, rhythm, and model predictions to suggest the most
+    suitable and safe cardiovascular drug while flagging electrophysiological contraindications.
+    """
+    measurements = ecg_data.get("measurements") or {}
+    predictions = ecg_data.get("predictions") or []
+    extracted_text = ecg_data.get("extracted_text") or ""
+    interpretation = (measurements.get("reported_interpretation") or "") + " " + extracted_text
+    text_lower = interpretation.lower()
+
+    hr = measurements.get("heart_rate_bpm")
+    pr = measurements.get("pr_interval_ms")
+    qrs = measurements.get("qrs_duration_ms")
+    qtc = measurements.get("qtc_interval_ms")
+
+    # Map ML predictions if available
+    pred_scores = {p["label"]: p["score"] for p in predictions if isinstance(p, dict) and "label" in p and "score" in p}
+
+    is_mi = (
+        pred_scores.get("MI", 0.0) >= 0.50
+        or "infarct" in text_lower
+        or "stemi" in text_lower
+        or "nstemi" in text_lower
+        or "acute coronary" in text_lower
+        or "pathological q" in text_lower
+    )
+    is_sttc = (
+        pred_scores.get("STTC", 0.0) >= 0.50
+        or "st elevation" in text_lower
+        or "st depression" in text_lower
+        or "t wave inversion" in text_lower
+        or "ischemi" in text_lower
+    )
+    is_cd = (
+        pred_scores.get("CD", 0.0) >= 0.50
+        or (pr is not None and pr >= 200)
+        or (qrs is not None and qrs >= 120)
+        or (hr is not None and hr < 60)
+        or "av block" in text_lower
+        or "heart block" in text_lower
+        or "bundle branch" in text_lower
+        or "lbbb" in text_lower
+        or "rbbb" in text_lower
+        or "bradycardia" in text_lower
+        or "conduction delay" in text_lower
+    )
+    is_hyp = (
+        pred_scores.get("HYP", 0.0) >= 0.50
+        or "hypertrophy" in text_lower
+        or "lvh" in text_lower
+        or "left ventricular hypertrophy" in text_lower
+        or "voltage criteria" in text_lower
+    )
+    is_tachy = (
+        (hr is not None and hr >= 100)
+        or "tachycardia" in text_lower
+        or "atrial fibrillation" in text_lower
+        or "afib" in text_lower
+        or "flutter" in text_lower
+    )
+
+    # Clinical Hierarchy Rule 1: Conduction Disturbance / AV Block / Bradycardia
+    # (Must prioritize avoiding lethal heart block from nodal blocking agents)
+    if is_cd:
+        suggested_drug = "amlodipine"
+        suggested_label = "Amlodipine (5 mg once daily)"
+        category = "Conduction-Safe Afterload Reduction"
+        trigger = "Conduction Disturbance / Bradycardia on ECG"
+        rationale = (
+            "Dihydropyridine calcium channel blocker provides systemic afterload and pressure reduction "
+            "with zero SA/AV nodal suppression, preventing progression to complete heart block or severe asystole."
+        )
+        recommended_dose_mg = 5.0
+        recommended_interval_h = 24.0
+        contraindicated_drugs = [
+            {
+                "drug": "metoprolol",
+                "label": "Metoprolol",
+                "reason": "CONTRAINDICATED: Beta-1 blockade suppresses AV nodal conduction and risks complete heart block or syncope in pre-existing conduction defect / bradycardia.",
+            },
+            {
+                "drug": "carvedilol",
+                "label": "Carvedilol",
+                "reason": "CONTRAINDICATED: Combined beta-blockade aggravates AV conduction slowing and depressive chronotropy.",
+            },
+            {
+                "drug": "diltiazem",
+                "label": "Diltiazem",
+                "reason": "CONTRAINDICATED: Non-dihydropyridine CCB directly impairs AV nodal conduction velocity, risking high-grade block.",
+            },
+        ]
+        safe_alternatives = [
+            {"drug": "losartan", "label": "Losartan", "reason": "Safe angiotensin receptor blocker with neutral chronotropic and dromotropic profile."},
+            {"drug": "lisinopril", "label": "Lisinopril", "reason": "Safe long-acting ACE inhibitor for afterload reduction without conduction interference."},
+        ]
+
+    # Clinical Hierarchy Rule 2: Acute Myocardial Infarction / Active Ischemia
+    elif is_mi or is_sttc:
+        suggested_drug = "carvedilol"
+        suggested_label = "Carvedilol (12.5 mg every 12h)"
+        category = "Cardioprotection & Anti-Ischemic Beta-Blockade"
+        trigger = "Myocardial Infarction / ST-T Ischemia on ECG"
+        rationale = (
+            "Guideline-directed medical therapy (GDMT) post-MI: Combined alpha/beta blockade lowers myocardial "
+            "oxygen demand, suppresses post-infarction ventricular arrhythmias, and halts progressive remodeling."
+        )
+        recommended_dose_mg = 12.5
+        recommended_interval_h = 12.0
+        contraindicated_drugs = [
+            {
+                "drug": "phenylephrine",
+                "label": "Phenylephrine",
+                "reason": "CONTRAINDICATED: Alpha-1 vasopressor spikes afterload and myocardial wall stress, worsening ischemic tissue necrosis.",
+            }
+        ]
+        safe_alternatives = [
+            {"drug": "metoprolol", "label": "Metoprolol", "reason": "Cardioselective beta-1 blocker reduces infarct size and oxygen consumption."},
+            {"drug": "lisinopril", "label": "Lisinopril", "reason": "ACE inhibitor indicated post-MI to prevent adverse left ventricular remodeling."},
+            {"drug": "losartan", "label": "Losartan", "reason": "First-line ARB alternative for neurohormonal blockade."},
+        ]
+
+    # Clinical Hierarchy Rule 3: Left Ventricular Hypertrophy (LVH)
+    elif is_hyp:
+        suggested_drug = "losartan"
+        suggested_label = "Losartan (50 mg once daily)"
+        category = "Ventricular Remodeling & Hypertrophy Regression"
+        trigger = "Left Ventricular Hypertrophy (LVH) on ECG"
+        rationale = (
+            "Angiotensin receptor blockers demonstrate proven clinical superiority in promoting left ventricular "
+            "mass regression and reducing myocardial fibrosis."
+        )
+        recommended_dose_mg = 50.0
+        recommended_interval_h = 24.0
+        contraindicated_drugs = [
+            {
+                "drug": "phenylephrine",
+                "label": "Phenylephrine",
+                "reason": "Avoid pure vasopressors: Further increases afterload on hypertrophied, non-compliant ventricle.",
+            }
+        ]
+        safe_alternatives = [
+            {"drug": "lisinopril", "label": "Lisinopril", "reason": "Cardioprotective ACE inhibitor promoting regression of cardiac hypertrophy."},
+            {"drug": "amlodipine", "label": "Amlodipine", "reason": "Long-acting calcium channel blocker reduces systemic resistance and wall tension."},
+        ]
+
+    # Clinical Hierarchy Rule 4: Tachycardia / Atrial Fibrillation
+    elif is_tachy:
+        suggested_drug = "metoprolol"
+        suggested_label = "Metoprolol (50 mg once daily)"
+        category = "Ventricular Rate Control"
+        trigger = "Tachycardia / Arrhythmia on ECG"
+        rationale = (
+            "Cardioselective beta-1 blocker safely reduces rate-pressure product, prolongs diastolic "
+            "coronary perfusion time, and controls ventricular rate."
+        )
+        recommended_dose_mg = 50.0
+        recommended_interval_h = 24.0
+        contraindicated_drugs = [
+            {
+                "drug": "norepinephrine",
+                "label": "Norepinephrine",
+                "reason": "Avoid chronotropic vasopressors that exacerbate tachycardia and myocardial strain.",
+            }
+        ]
+        safe_alternatives = [
+            {"drug": "diltiazem", "label": "Diltiazem", "reason": "Non-DHP CCB for effective ventricular rate control in SVT/AFib with preserved EF."},
+            {"drug": "carvedilol", "label": "Carvedilol", "reason": "Combined alpha/beta blockade lowers rate and pressure."},
+        ]
+
+    # Clinical Hierarchy Rule 5: Normal / Uncomplicated ECG
+    else:
+        suggested_drug = "amlodipine"
+        suggested_label = "Amlodipine (5 mg once daily)"
+        category = "First-Line Hemodynamic Pressure Control"
+        trigger = "Normal ECG Electrophysiology"
+        rationale = (
+            "Standard first-line arterial vasodilator provides smooth 24-hour hemodynamic control "
+            "with zero adverse electrophysiological disturbances."
+        )
+        recommended_dose_mg = 5.0
+        recommended_interval_h = 24.0
+        contraindicated_drugs = []
+        safe_alternatives = [
+            {"drug": "losartan", "label": "Losartan", "reason": "Well-tolerated first-line ARB."},
+            {"drug": "lisinopril", "label": "Lisinopril", "reason": "Standard renoprotective ACE inhibitor."},
+        ]
+
+    return {
+        "suggested_drug": suggested_drug,
+        "suggested_label": suggested_label,
+        "category": category,
+        "ecg_trigger": trigger,
+        "clinical_rationale": rationale,
+        "recommended_dose_mg": recommended_dose_mg,
+        "recommended_interval_h": recommended_interval_h,
+        "regimen": [
+            {
+                "drug": suggested_drug,
+                "dose_mg": recommended_dose_mg,
+                "interval_h": recommended_interval_h,
+                "n_doses": 1,
+            }
+        ],
+        "contraindicated_drugs": contraindicated_drugs,
+        "safe_alternatives": safe_alternatives,
+        "findings": {
+            "is_mi": is_mi,
+            "is_sttc": is_sttc,
+            "is_cd": is_cd,
+            "is_hyp": is_hyp,
+            "is_tachy": is_tachy,
+        },
+    }

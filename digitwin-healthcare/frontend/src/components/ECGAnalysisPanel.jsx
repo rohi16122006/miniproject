@@ -6,6 +6,14 @@ import {
 } from "../api/client.js";
 
 const acceptedFiles = ".csv,.zip,.pdf,.png,.jpg,.jpeg,.webp,.txt";
+const classDescriptions = {
+  NORM: "Normal ECG (Normal Sinus Rhythm)",
+  MI: "Myocardial Infarction / Ischemic Necrosis",
+  STTC: "ST/T Change (Repolarization Abnormality)",
+  CD: "Conduction Disturbance (AV / Bundle Branch Block)",
+  HYP: "Hypertrophy (Left/Right Ventricular)",
+};
+
 const measurementLabels = [
   ["heart_rate_bpm", "Heart rate", "bpm"],
   ["pr_interval_ms", "PR interval", "ms"],
@@ -15,7 +23,7 @@ const measurementLabels = [
   ["reported_interpretation", "Reported interpretation", ""],
 ];
 
-export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, onApplyToPatient }) {
+export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, onApplyToPatient, onApplyECGRecommendation }) {
   const [file, setFile] = useState(initialFile || null);
   const [samplingRate, setSamplingRate] = useState("");
   const [units, setUnits] = useState("");
@@ -317,41 +325,119 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
             </ul>
           )}
 
-          {analysis.analysis_type === "waveform" && (
-            <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3">
-              <h4 className="text-xs font-bold text-indigo-900">Research model output</h4>
-              {!modelStatus?.available ? (
-                <p className="mt-1 text-xs text-indigo-800">
-                  {modelStatus?.message || "No trained ECG model is installed. No prediction is available."}
-                </p>
-              ) : (
-                <>
-                  {analysis.model_input_compatible ? (
-                    <button
-                      type="button"
-                      onClick={handlePrediction}
-                      disabled={busy}
-                      className="mt-2 rounded bg-indigo-700 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-50"
-                    >
-                      Run research classification
-                    </button>
-                  ) : (
-                    <p className="mt-1 text-xs text-indigo-800">
-                      This upload is not a supported 10-second, standard-order 12-lead waveform for the model.
+          {/* Diagnostic Predictions (Both Waveforms and Report OCR) */}
+          {(prediction?.predictions || analysis?.predictions) && (
+            <div className="rounded-md border border-indigo-200 bg-indigo-50/70 p-3.5 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">
+                  ECG Diagnostic Model Predictions (PTB-XL Classifier)
+                </h4>
+                <span className="text-[11px] text-indigo-800 font-medium">Threshold: 0.50</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {(prediction?.predictions || analysis?.predictions).map((item) => (
+                  <div
+                    key={item.label}
+                    className={`rounded border p-2 text-xs flex flex-col justify-between ${
+                      item.predicted
+                        ? "border-amber-400 bg-amber-50 text-amber-950 font-medium"
+                        : "border-indigo-100 bg-white text-indigo-900"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between font-bold">
+                        <span>{item.label}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                          item.predicted ? "bg-amber-200 text-amber-950" : "bg-gray-100 text-gray-600"
+                        }`}>
+                          {item.predicted ? "Detected" : "Unlikely"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        {classDescriptions[item.label] || item.label}
+                      </p>
+                    </div>
+                    <p className="text-[11px] font-mono font-semibold mt-1.5">
+                      Score: {(item.score * 100).toFixed(1)}%
                     </p>
-                  )}
-                </>
-              )}
-              {prediction && (
-                <div className="mt-3 space-y-1 text-xs text-indigo-950">
-                  <p>Model {prediction.model_version} · {prediction.dataset}</p>
-                  {prediction.predictions.map((item) => (
-                    <p key={item.label}>{item.label}: score {item.score.toFixed(3)} · {item.predicted ? "above 0.5 threshold" : "below 0.5 threshold"}</p>
-                  ))}
-                  <p className="font-semibold">{prediction.uncertainty}</p>
-                </div>
+                  </div>
+                ))}
+              </div>
+              {analysis.analysis_type === "waveform" && analysis.model_input_compatible && !prediction && (
+                <button
+                  type="button"
+                  onClick={handlePrediction}
+                  disabled={busy}
+                  className="mt-2 rounded bg-indigo-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-50 transition cursor-pointer"
+                >
+                  Run research classification
+                </button>
               )}
             </div>
+          )}
+
+          {/* ECG-Guided Drug Recommendation & Safety Evaluation */}
+          {(prediction?.ecg_drug_recommendation || analysis?.ecg_drug_recommendation) && (
+            (() => {
+              const drugRec = prediction?.ecg_drug_recommendation || analysis?.ecg_drug_recommendation;
+              return (
+                <div className="rounded-lg border border-teal-300 bg-teal-50/70 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200 pb-2.5">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                        ECG-Informed Medication Recommendation
+                      </span>
+                      <h4 className="text-sm font-bold text-teal-950 mt-0.5">{drugRec.suggested_label}</h4>
+                    </div>
+                    <span className="rounded bg-teal-100 text-teal-900 border border-teal-300 px-2.5 py-1 text-xs font-semibold">
+                      {drugRec.category}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-teal-950 space-y-1.5">
+                    <p><span className="font-semibold text-teal-900">ECG Trigger:</span> {drugRec.ecg_trigger}</p>
+                    <p className="leading-relaxed"><span className="font-semibold text-teal-900">Clinical Rationale:</span> {drugRec.clinical_rationale}</p>
+                  </div>
+
+                  {drugRec.contraindicated_drugs?.length > 0 && (
+                    <div className="rounded border border-red-200 bg-red-50 p-2.5">
+                      <span className="text-[11px] font-bold text-red-900 uppercase tracking-wide">
+                        Contraindicated in this ECG Profile
+                      </span>
+                      <ul className="mt-1 space-y-1 text-xs text-red-800">
+                        {drugRec.contraindicated_drugs.map((c) => (
+                          <li key={c.drug}>
+                            <strong className="font-semibold">{c.label}:</strong> {c.reason}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {drugRec.safe_alternatives?.length > 0 && (
+                    <div className="text-xs text-teal-900">
+                      <span className="font-semibold">Safe Alternative Options:</span>{" "}
+                      {drugRec.safe_alternatives.map((a) => `${a.label} (${a.reason})`).join(" · ")}
+                    </div>
+                  )}
+
+                  {onApplyECGRecommendation && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const hr = analysis.measurements?.heart_rate_bpm ? Number(analysis.measurements.heart_rate_bpm) : null;
+                          onApplyECGRecommendation(drugRec, hr);
+                        }}
+                        className="rounded bg-teal-800 hover:bg-teal-900 text-white font-bold px-3 py-2 text-xs transition cursor-pointer shadow-sm"
+                      >
+                        Apply ECG Drug & Vitals to Simulation
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
       )}

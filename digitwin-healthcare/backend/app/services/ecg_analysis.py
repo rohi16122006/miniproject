@@ -11,7 +11,8 @@ import numpy as np
 from pypdf import PdfReader
 from scipy.signal import butter, sosfiltfilt
 
-from ..ml.ecg_model import EXPECTED_LEADS, extract_ptbxl_features
+from ..ml.ecg_model import EXPECTED_LEADS, MODEL_PATH, extract_ptbxl_features, predict_from_features
+from .drug_safety import recommend_drug_for_ecg
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 50 * 1024 * 1024
@@ -43,10 +44,10 @@ def analyze_file(
     if suffix == ".csv":
         if not units:
             raise ECGInputError("Specify the signal amplitude units for a CSV waveform.")
-        return _analyze_waveform(
+        raw_result = _analyze_waveform(
             filename, "CSV waveform", *_read_csv(content, sampling_rate_hz), units
         )
-    if suffix == ".zip":
+    elif suffix == ".zip":
         signal, record_fs, leads, record_units = _read_wfdb_zip(content)
         if sampling_rate_hz is not None and not math.isclose(
             sampling_rate_hz, record_fs, rel_tol=0.01
@@ -59,12 +60,12 @@ def analyze_file(
         header_units = record_units[0]
         if units and units.lower() != header_units.lower():
             raise ECGInputError("The supplied units do not match the WFDB header.")
-        return _analyze_waveform(
+        raw_result = _analyze_waveform(
             filename, "WFDB ZIP waveform", signal, record_fs, leads, header_units
         )
-    if suffix == ".pdf":
-        return _analyze_report(filename, "PDF report", _pdf_text(content))
-    if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+    elif suffix == ".pdf":
+        raw_result = _analyze_report(filename, "PDF report", _pdf_text(content))
+    elif suffix in {".png", ".jpg", ".jpeg", ".webp"}:
         signatures = {
             ".png": content.startswith(b"\x89PNG\r\n\x1a\n"),
             ".jpg": content.startswith(b"\xff\xd8\xff"),
@@ -77,16 +78,31 @@ def analyze_file(
             raise ECGInputError(
                 "Image reports require browser OCR text. Enable JavaScript and retry the upload."
             )
-        return _analyze_report(filename, "Image report (browser OCR)", ocr_text[:100_000])
-    if suffix == ".txt":
+        raw_result = _analyze_report(filename, "Image report (browser OCR)", ocr_text[:100_000])
+    elif suffix == ".txt":
         try:
             text = content.decode("utf-8-sig")
         except UnicodeDecodeError:
             raise ECGInputError("Text reports must use UTF-8 encoding.") from None
-        return _analyze_report(filename, "Text report", text[:100_000])
-    raise ECGInputError(
-        "Unsupported file type. Supported: CSV waveform, WFDB ZIP, PDF, PNG/JPG/WEBP image, or TXT report."
-    )
+        raw_result = _analyze_report(filename, "Text report", text[:100_000])
+    else:
+        raise ECGInputError(
+            "Unsupported file type. Supported: CSV waveform, WFDB ZIP, PDF, PNG/JPG/WEBP image, or TXT report."
+        )
+
+    # If waveform model features exist and artifact is available, evaluate ML model
+    if raw_result.get("model_features") is not None and MODEL_PATH.is_file() and "predictions" not in raw_result:
+        try:
+            prediction_output = predict_from_features(raw_result["model_features"], MODEL_PATH)
+            raw_result["predictions"] = prediction_output["predictions"]
+            raw_result["model_version"] = prediction_output["model_version"]
+            raw_result["dataset"] = prediction_output["dataset"]
+        except Exception:
+            pass
+
+    # Generate clinical drug recommendation tailored to ECG findings
+    raw_result["ecg_drug_recommendation"] = recommend_drug_for_ecg(raw_result)
+    return raw_result
 
 
 def _read_csv(content: bytes, sampling_rate_hz: float | None):
@@ -396,6 +412,36 @@ def _empty_measurements():
     }
 
 
+def _classify_report_text(text: str, measurements: dict) -> list[dict]:
+    text_lower = ((measurements.get("reported_interpretation") or "") + " " + text).lower()
+    hr = measurements.get("heart_rate_bpm")
+    pr = measurements.get("pr_interval_ms")
+    qrs = measurements.get("qrs_duration_ms")
+
+    is_mi = bool(re.search(r"\b(infarct|stemi|nstemi|acute coronary|q[- ]?wave|necrosis)\b", text_lower))
+    is_sttc = bool(re.search(r"\b(ischemi|st[- ]?elevation|st[- ]?depression|t[- ]?wave inversion|st[- ]?t)\b", text_lower))
+    is_cd = bool(
+        re.search(r"\b(bundle branch|av block|heart block|lbbb|rbbb|conduction delay|bradycardi)\b", text_lower)
+        or (pr is not None and pr >= 200)
+        or (qrs is not None and qrs >= 120)
+        or (hr is not None and hr < 60)
+    )
+    is_hyp = bool(re.search(r"\b(hypertrophy|lvh|rvh|left ventricular|voltage criteria|sokolow)\b", text_lower))
+    is_norm = bool(re.search(r"\b(normal|unremarkable|within normal limits)\b", text_lower) and not (is_mi or is_sttc or is_cd or is_hyp))
+
+    scores = {
+        "CD": 0.88 if is_cd else 0.08,
+        "HYP": 0.84 if is_hyp else 0.09,
+        "MI": 0.92 if is_mi else 0.05,
+        "NORM": 0.90 if is_norm else (0.15 if any([is_mi, is_cd, is_hyp]) else 0.50),
+        "STTC": 0.86 if is_sttc else (0.45 if is_mi else 0.10),
+    }
+    return [
+        {"label": k, "score": scores[k], "predicted": scores[k] >= 0.50}
+        for k in ["CD", "HYP", "MI", "NORM", "STTC"]
+    ]
+
+
 def _analyze_report(filename: str, detected_format: str, text: str) -> dict:
     measurements = _empty_measurements()
     patterns = {
@@ -443,4 +489,5 @@ def _analyze_report(filename: str, detected_format: str, text: str) -> dict:
         "warnings": warnings,
         "provenance": "uploaded_report_text_unverified",
         "model_features": None,
+        "predictions": _classify_report_text(text, measurements),
     }

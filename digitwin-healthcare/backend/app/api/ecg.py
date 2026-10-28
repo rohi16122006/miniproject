@@ -116,6 +116,7 @@ async def predict_ecg(
         "dataset": prediction["dataset"],
         "predictions": prediction["predictions"],
         "uncertainty": "Probabilities are model scores and are not calibrated clinical confidence.",
+        "ecg_drug_recommendation": result.get("ecg_drug_recommendation"),
         "limitations": [
             "Research-only output; not a diagnosis or treatment recommendation.",
             "This model has not been trained in the current checkout unless an artifact is present.",

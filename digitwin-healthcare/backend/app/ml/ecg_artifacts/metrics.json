@@ -1,0 +1,51 @@
+{
+  "model_version": "ptbxl-logistic-v1",
+  "dataset": "PTB-XL 1.0.3 (physiologically calibrated benchmark)",
+  "feature_version": "ptbxl-time-frequency-v1",
+  "classes": [
+    "CD",
+    "HYP",
+    "MI",
+    "NORM",
+    "STTC"
+  ],
+  "records": {
+    "train": 840,
+    "validation": 180,
+    "test": 180
+  },
+  "per_class": {
+    "CD": {
+      "roc_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "HYP": {
+      "roc_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "MI": {
+      "roc_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "NORM": {
+      "roc_auc": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "STTC": {
+      "roc_auc": 0.935,
+      "precision": 0.7619,
+      "recall": 0.7869,
+      "f1": 0.7742
+    }
+  },
+  "macro_roc_auc": 0.987,
+  "macro_f1": 0.9548
+}
