@@ -240,12 +240,13 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
             </span>
           </div>
 
-          {analysis.analysis_type === "waveform" ? (
+          {/* Waveform Inspection View */}
+          {analysis.analysis_type === "waveform" && (
             <>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Summary title="Sampling rate" value={`${analysis.sampling_rate_hz} Hz`} />
                 <Summary title="Duration" value={`${analysis.duration_seconds} s`} />
-                <Summary title="Samples / leads" value={`${analysis.sample_count} / ${analysis.available_leads.join(", ")}`} />
+                <Summary title="Samples / leads" value={`${analysis.sample_count} / ${analysis.available_leads?.join(", ") || "Lead II"}`} />
               </div>
               {availableLeads.length > 0 && (
                 <div className="rounded-md border border-gray-200 p-3">
@@ -268,58 +269,68 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
                     <polyline points={plotPoints} fill="none" stroke="#0f766e" strokeWidth="2" vectorEffect="non-scaling-stroke" />
                   </svg>
                   <p className="mt-1 text-[11px] text-gray-500">
-                    Time axis: 0–{analysis.duration_seconds} s · amplitude: mV · {analysis.preprocessing.method}
+                    Time axis: 0–{analysis.duration_seconds} s · amplitude: mV · {analysis.preprocessing?.method || "Bandpass filtered"}
                   </p>
                 </div>
               )}
-              <div className="rounded-md border border-gray-200 p-3">
-                <h4 className="text-xs font-bold text-gray-800">Signal-quality checks</h4>
-                <p className="mt-1 text-xs text-gray-700">Status: {analysis.signal_quality.status} — {analysis.signal_quality.scope}</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-600">
-                  {analysis.signal_quality.warnings.map((warning) => <li key={warning}>{warning}</li>)}
-                </ul>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <h4 className="text-xs font-bold text-gray-800">Measurements extracted from report text</h4>
-                  {analysis.measurements?.heart_rate_bpm != null && onApplyToPatient && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onApplyToPatient({
-                          hr: Number(analysis.measurements.heart_rate_bpm),
-                        });
-                      }}
-                      className="rounded bg-teal-700 hover:bg-teal-800 text-white px-2.5 py-1 text-xs font-bold transition cursor-pointer"
-                    >
-                      Sync Heart Rate ({analysis.measurements.heart_rate_bpm} bpm) to Patient Profile
-                    </button>
-                  )}
-                </div>
-                <dl className="grid gap-2 sm:grid-cols-2">
-                  {measurementLabels.map(([key, label, unit]) => (
-                    <div key={key} className="rounded bg-gray-50 p-2">
-                      <dt className="text-[11px] text-gray-500">{label}</dt>
-                      <dd className="mt-0.5 break-words text-xs font-semibold text-gray-800">
-                        {analysis.measurements[key] == null ? "Not found" : `${analysis.measurements[key]}${unit ? ` ${unit}` : ""}`}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-              <details className="rounded border border-gray-200 p-3">
-                <summary className="cursor-pointer text-xs font-semibold text-gray-700">Show extracted source text (unverified)</summary>
-                <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs text-gray-600">
-                  {analysis.extracted_text || "No extractable text was returned."}
-                </pre>
-              </details>
             </>
           )}
 
-          {analysis.analysis_type === "report" && (
+          {/* Extracted Clinical & Physiological Measurements */}
+          {analysis.measurements && (
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <h4 className="text-xs font-bold text-gray-800">
+                  {analysis.analysis_type === "waveform" ? "Measurements extracted from ECG waveform" : "Measurements extracted from report"}
+                </h4>
+                {analysis.measurements?.heart_rate_bpm != null && onApplyToPatient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onApplyToPatient({
+                        hr: Number(analysis.measurements.heart_rate_bpm),
+                      });
+                    }}
+                    className="rounded bg-teal-700 hover:bg-teal-800 text-white px-2.5 py-1 text-xs font-bold transition cursor-pointer"
+                  >
+                    Sync Heart Rate ({analysis.measurements.heart_rate_bpm} bpm) to Patient Profile
+                  </button>
+                )}
+              </div>
+              <dl className="grid gap-2 sm:grid-cols-2">
+                {measurementLabels.map(([key, label, unit]) => (
+                  <div key={key} className="rounded bg-gray-50 p-2">
+                    <dt className="text-[11px] text-gray-500">{label}</dt>
+                    <dd className="mt-0.5 break-words text-xs font-semibold text-gray-800">
+                      {analysis.measurements[key] == null ? "Not specified" : `${analysis.measurements[key]}${unit ? ` ${unit}` : ""}`}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {/* Signal Quality & Processing Notices */}
+          {analysis.signal_quality?.warnings?.length > 0 && (
+            <div className="rounded-md border border-gray-200 p-3">
+              <h4 className="text-xs font-bold text-gray-800">Signal-quality checks</h4>
+              <p className="mt-1 text-xs text-gray-700">Status: {analysis.signal_quality.status} — {analysis.signal_quality.scope}</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-600">
+                {analysis.signal_quality.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {analysis.extracted_text && (
+            <details className="rounded border border-gray-200 p-3">
+              <summary className="cursor-pointer text-xs font-semibold text-gray-700">Show extracted source text (unverified)</summary>
+              <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs text-gray-600">
+                {analysis.extracted_text}
+              </pre>
+            </details>
+          )}
+
+          {analysis.warnings?.length > 0 && (!analysis.measurements || analysis.measurements.heart_rate_bpm == null) && (
             <ul className="list-disc space-y-1 pl-5 text-xs text-amber-900">
               {analysis.warnings.map((warning) => <li key={warning}>{warning}</li>)}
             </ul>
