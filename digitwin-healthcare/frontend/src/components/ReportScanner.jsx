@@ -183,6 +183,7 @@ export default function ReportScanner({ onApply }) {
               <div className="grid grid-cols-2 gap-3">
                 {Object.entries(captured).map(([key, value]) => {
                   const config = reportFields[key];
+                  if (!config) return null;
                   return (
                     <label key={key} className="block text-xs font-semibold text-gray-700">
                       <span className="mb-1 block">{config.label}{config.unit ? ` (${config.unit})` : ""}</span>
@@ -195,6 +196,13 @@ export default function ReportScanner({ onApply }) {
                           <option value="female">Female</option>
                           <option value="male">Male</option>
                         </select>
+                      ) : key === "name" || key === "patient_id" ? (
+                        <input
+                          className="w-full rounded border border-gray-300 bg-white px-2 py-1.5"
+                          type="text"
+                          value={value ?? ""}
+                          onChange={(event) => updateCaptured(key, event.target.value)}
+                        />
                       ) : (
                         <input
                           className="w-full rounded border border-gray-300 bg-white px-2 py-1.5"
@@ -215,10 +223,20 @@ export default function ReportScanner({ onApply }) {
                 type="button"
                 onClick={() => {
                   const values = Object.fromEntries(
-                    Object.entries(captured).filter(([key, value]) =>
-                      key === "sex" || (Number.isFinite(value) &&
-                        value >= reportFields[key].min && value <= reportFields[key].max)
-                    )
+                    Object.entries(captured).filter(([key, value]) => {
+                      if (key === "name" || key === "patient_id") {
+                        return typeof value === "string" && value.trim().length > 0;
+                      }
+                      if (key === "sex") {
+                        return value === "male" || value === "female";
+                      }
+                      return (
+                        reportFields[key] &&
+                        Number.isFinite(value) &&
+                        value >= reportFields[key].min &&
+                        value <= reportFields[key].max
+                      );
+                    })
                   );
                   onApply(values);
                   setStatus("Reviewed values applied to the patient form.");
@@ -229,7 +247,7 @@ export default function ReportScanner({ onApply }) {
                 Apply reviewed values
               </button>
               <p className="text-[11px] text-gray-500">
-                Only recognized fields are applied. Patient names and other report details are not stored.
+                Only recognized fields are applied to your workspace session. Source documents are not retained.
               </p>
             </div>
           )}

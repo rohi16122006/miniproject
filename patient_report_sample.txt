@@ -36,3 +36,4 @@ CLINICAL IMPRESSION & RECOMMENDATION
 4. Digital Twin: Calibrate 0D Windkessel physical model with baseline BP 145/92 mmHg, HR 76 bpm.
 
 Validated by: Dr. Evelyn Vance, MD, FACC | License #CA-892410
+
