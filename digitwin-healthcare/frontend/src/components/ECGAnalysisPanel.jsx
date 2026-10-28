@@ -111,6 +111,10 @@ export default function ECGAnalysisPanel({ runId, initialFile, onFileSelected, o
       setAnalysis(response);
       setSelectedLead(response.available_leads?.[0] || "");
       setStatus("");
+
+      if (response.patient_vitals && Object.keys(response.patient_vitals).length > 0) {
+        onApplyToPatient?.(response.patient_vitals);
+      }
     } catch (requestError) {
       setError(requestError.message);
       setStatus("");

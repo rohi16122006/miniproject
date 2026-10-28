@@ -136,7 +136,7 @@ def _digitize_waveform_image(image_bytes: bytes, filename: str) -> dict | None:
                 "model_input_not_imputed": True,
             },
             "measurements": measurements,
-            "patient_vitals": {"hr": round(float(heart_rate), 1)} if heart_rate is not None else {},
+            "patient_vitals": {"hr": round(float(hr_bpm), 1)} if hr_bpm is not None else {},
             "waveform_preview": preview,
             "extracted_text": None,
             "warnings": warnings,
